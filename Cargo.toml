@@ -1,0 +1,13 @@
+[package]
+name = "c2pa-structured-text"
+version = "0.1.0"
+edition = "2021"
+description = "C2PA manifest embedding for structured text formats using ASCII armour delimiters"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/writerslogic/c2pa-structured-text"
+keywords = ["c2pa", "provenance", "text", "embedding"]
+categories = ["encoding", "parser-implementations"]
+
+[dependencies]
+thiserror = "2"
+base64 = "0.22"
