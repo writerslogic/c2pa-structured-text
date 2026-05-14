@@ -1,17 +1,22 @@
-#[derive(Debug, thiserror::Error)]
+use std::fmt;
+
+#[derive(Debug)]
 pub enum Error {
-    #[error("no manifest block found")]
     NotFound,
-
-    #[error("multiple manifest blocks found")]
     MultipleBlocks,
-
-    #[error("empty manifest reference")]
     EmptyReference,
-
-    #[error("malformed manifest reference: {0}")]
     MalformedReference(String),
-
-    #[error("invalid base64: {0}")]
-    Base64(#[from] base64::DecodeError),
 }
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::NotFound => write!(f, "no manifest block found"),
+            Self::MultipleBlocks => write!(f, "multiple manifest blocks found"),
+            Self::EmptyReference => write!(f, "empty manifest reference"),
+            Self::MalformedReference(s) => write!(f, "malformed manifest reference: {s}"),
+        }
+    }
+}
+
+impl std::error::Error for Error {}
