@@ -4,6 +4,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/writerslogic/c2pa-structured-text/actions/workflows/ci.yml"><img src="https://github.com/writerslogic/c2pa-structured-text/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://crates.io/crates/c2pa-structured-text"><img src="https://img.shields.io/crates/v/c2pa-structured-text.svg" alt="crates.io"></a>
   <a href="https://docs.rs/c2pa-structured-text"><img src="https://docs.rs/c2pa-structured-text/badge.svg" alt="docs.rs"></a>
   <a href="#license"><img src="https://img.shields.io/crates/l/c2pa-structured-text.svg" alt="License"></a>
@@ -31,7 +32,8 @@ c2pa-structured-text = "0.1"
 ```rust
 use c2pa_structured_text::{embed_manifest, ManifestRef};
 
-let text = "print('hello')\n";
+let text = "print('hello')
+";
 let signed = embed_manifest(
     text,
     ManifestRef::Url("https://example.com/manifests/abc.c2pa"),
@@ -48,7 +50,9 @@ let signed = embed_manifest(
 ```rust
 use c2pa_structured_text::extract_manifest;
 
-let text = "# -----BEGIN C2PA MANIFEST----- https://example.com/m.c2pa -----END C2PA MANIFEST-----\nprint('hello')\n";
+let text = "# -----BEGIN C2PA MANIFEST----- https://example.com/m.c2pa -----END C2PA MANIFEST-----
+print('hello')
+";
 let result = extract_manifest(text).unwrap();
 assert_eq!(result.reference, "https://example.com/m.c2pa");
 ```
