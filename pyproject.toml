@@ -1,0 +1,28 @@
+[build-system]
+requires = ["maturin>=1.5,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "c2pa-structured-text"
+description = "C2PA manifest embedding, hard binding, and validation for structured text formats"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT OR Apache-2.0" }
+keywords = ["c2pa", "provenance", "text", "content-credentials"]
+authors = [{ name = "WritersLogic", email = "hello@writerslogic.com" }]
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: 3",
+    "Topic :: Security :: Cryptography",
+    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: Apache Software License",
+]
+dynamic = ["version"]
+
+[project.urls]
+Repository = "https://github.com/writerslogic/c2pa-structured-text"
+
+[tool.maturin]
+features = ["python"]
+# Build a single abi3 wheel usable across Python >= 3.9.
+module-name = "c2pa_structured_text"

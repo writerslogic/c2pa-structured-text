@@ -17,16 +17,21 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
+  # Native validation stops at the c2pa bridge; the wasm/python features use
+  # `extension-module`/wasm intrinsics that only link under their own toolchains
+  # (wasm-pack, maturin), exercised by the `bindings` job below.
+  NATIVE_FEATURES: hard-binding,c2pa,remote
 
 jobs:
   check:
     name: Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+          targets: wasm32-unknown-unknown
       - uses: actions/cache@v4
         with:
           path: |
@@ -34,15 +39,16 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - run: cargo check --all-features
-      - run: cargo clippy --all-features -- -D warnings
       - run: cargo fmt --all -- --check
+      - run: cargo clippy --all-targets --features "$NATIVE_FEATURES" -- -D warnings
+      - run: cargo clippy --features wasm --target wasm32-unknown-unknown -- -D warnings
+      - run: cargo clippy --features python -- -D warnings
 
   test:
     name: Test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: actions/cache@v4
         with:
@@ -51,4 +57,21 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.lock') }}
-      - run: cargo test --all-features
+      - run: cargo test --features "$NATIVE_FEATURES"
+
+  bindings:
+    name: Bindings (wasm + python)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: jetli/wasm-pack-action@v0.4.0
+      - name: Build npm (WASM) package
+        run: wasm-pack build --target bundler --out-dir pkg --out-name c2pa-structured-text -- --features wasm
+      - name: Build PyPI wheel
+        uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          args: --release --out dist

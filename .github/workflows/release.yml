@@ -1,0 +1,139 @@
+name: Release
+
+# Tag-triggered release. Nothing is published unless a version tag is pushed and
+# the required secrets are configured. Publish targets: crates.io, npm (WASM),
+# PyPI (maturin), and a GitHub release.
+#
+# Required repository secrets:
+#   CARGO_REGISTRY_TOKEN  crates.io API token
+#   NPM_TOKEN             npm automation token (publish scope)
+#   PYPI_API_TOKEN        PyPI API token (account-scoped for the first publish,
+#                         project-scoped thereafter)
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+    env:
+      # See CI: wasm/python features link only under wasm-pack/maturin, which
+      # run in the npm/pypi jobs below.
+      NATIVE_FEATURES: hard-binding,c2pa,remote
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+          targets: wasm32-unknown-unknown
+      - name: Tag matches Cargo.toml version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          crate="$(cargo metadata --no-deps --format-version 1 | python3 -c 'import sys,json;print(json.load(sys.stdin)["packages"][0]["version"])')"
+          if [ "$tag" != "$crate" ]; then
+            echo "tag $tag != Cargo.toml $crate"; exit 1
+          fi
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --all-targets --features "$NATIVE_FEATURES" -- -D warnings
+      - run: cargo clippy --features wasm --target wasm32-unknown-unknown -- -D warnings
+      - run: cargo clippy --features python -- -D warnings
+      - run: cargo test --features "$NATIVE_FEATURES"
+
+  crates-io:
+    name: Publish crates.io
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo publish --token "${{ secrets.CARGO_REGISTRY_TOKEN }}"
+
+  npm:
+    name: Publish npm (WASM)
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: jetli/wasm-pack-action@v0.4.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+      - name: Build package
+        run: wasm-pack build --target bundler --out-dir pkg --out-name c2pa-structured-text -- --features wasm
+      - name: Publish
+        run: npm publish --access public
+        working-directory: pkg
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  pypi-wheels:
+    name: Build wheels (${{ matrix.os }})
+    needs: verify
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build abi3 wheel
+        uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          args: --release --out dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}
+          path: dist
+
+  pypi-sdist:
+    name: Build sdist
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          args: --out dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist
+
+  pypi:
+    name: Publish PyPI
+    needs: [pypi-wheels, pypi-sdist]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Publish
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          packages-dir: dist
+
+  github-release:
+    name: GitHub release
+    needs: [crates-io, npm, pypi]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
