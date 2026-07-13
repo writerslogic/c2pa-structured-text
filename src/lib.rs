@@ -29,6 +29,55 @@
 //! **not** implemented here; the [`bridge`] (feature `c2pa`) delegates them to
 //! `c2pa-rs`.
 //!
+//! # Examples
+//!
+//! The block is embedded using the host format's comment syntax and located
+//! again by its ASCII delimiters, independent of that syntax. One round trip
+//! per comment style:
+//!
+//! Line comments — `#` (Python, Ruby, Shell, YAML, TOML), `//` (JS, Rust, Go,
+//! C++), `--` (SQL, Lua, Haskell):
+//!
+//! ```
+//! use c2pa_structured_text::{embed_manifest, extract_manifest, ManifestRef};
+//!
+//! for prefix in ["#", "//", "--"] {
+//!     let signed = embed_manifest("value = 1\n", ManifestRef::Url("https://ex.com/m.c2pa"), prefix, None);
+//!     assert!(signed.starts_with(prefix));
+//!     assert_eq!(extract_manifest(&signed).unwrap().reference, "https://ex.com/m.c2pa");
+//! }
+//! ```
+//!
+//! Block comments — `/* */` (CSS, C, Java):
+//!
+//! ```
+//! use c2pa_structured_text::{embed_manifest, extract_manifest, ManifestRef};
+//!
+//! let signed = embed_manifest("body {}\n", ManifestRef::Url("https://ex.com/m.c2pa"), "/*", Some("*/"));
+//! assert!(signed.contains("-----END C2PA MANIFEST----- */"));
+//! assert_eq!(extract_manifest(&signed).unwrap().reference, "https://ex.com/m.c2pa");
+//! ```
+//!
+//! Markup comments — `<!-- -->` (Markdown, non-HTML XML):
+//!
+//! ```
+//! use c2pa_structured_text::{embed_manifest, extract_manifest, ManifestRef};
+//!
+//! let signed = embed_manifest("# Title\n", ManifestRef::Url("https://ex.com/m.c2pa"), "<!--", Some("-->"));
+//! assert!(signed.starts_with("<!-- -----BEGIN C2PA MANIFEST-----"));
+//! assert_eq!(extract_manifest(&signed).unwrap().reference, "https://ex.com/m.c2pa");
+//! ```
+//!
+//! Front matter — multi-line form for YAML (`---`) / TOML (`+++`):
+//!
+//! ```
+//! use c2pa_structured_text::{embed_front_matter, extract_manifest, ManifestRef};
+//!
+//! let signed = embed_front_matter("title: doc\n", ManifestRef::Url("https://ex.com/m.c2pa"), "---");
+//! assert!(signed.starts_with("---\n-----BEGIN C2PA MANIFEST-----\n"));
+//! assert_eq!(extract_manifest(&signed).unwrap().reference, "https://ex.com/m.c2pa");
+//! ```
+//!
 //! # Features
 //!
 //! - `hard-binding` — concrete SHA2-256/384/512 [`hardbinding::compute_data_hash`]

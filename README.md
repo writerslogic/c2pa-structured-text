@@ -136,9 +136,21 @@ Any text format with a comment syntax or front matter convention:
 | `<!-- -->` | Markdown, XML (non-HTML) | `<!-- -----BEGIN C2PA MANIFEST----- ... -----END C2PA MANIFEST----- -->` |
 | Front matter | Markdown (YAML), TOML | Multi-line form between front matter delimiters |
 
-> **WebVTT** is structured text per the specification, but it is owned by the dedicated [c2pa-vtt](https://github.com/writerslogic/c2pa-vtt) crate, not this one. `c2pa-vtt` places the `NOTE` block immediately after the `WEBVTT` header, where it survives HLS/DASH segmentation. Use `c2pa-vtt` for `.vtt` files.
->
-> **HTML** and **SVG** have their own C2PA embedding methods and are out of scope here.
+The crate is **format-agnostic**: it does not hard-code a fixed list of languages. Any `text/*` asset with a comment introducer or a front matter convention works — you supply the comment prefix/suffix (or front matter fence). The table above is illustrative, not exhaustive.
+
+### Applicability and exclusions
+
+Per the specification, the structured-text method applies to any `text/*` (or plain-text) asset **not** already covered by a format-specific embedding method, provided it has a comment syntax or front matter. The following are **out of scope** and will not round-trip through this crate:
+
+| Not supported | Why | Use instead |
+|---|---|---|
+| JSON, CSV | No comment or front matter syntax — nothing to carry the block | none (embed in a container) |
+| HTML | Has its own C2PA embedding method | the HTML embedding method |
+| SVG, TTML | Have their own C2PA embedding methods | the SVG / TTML methods |
+| WebVTT | Structured text, but streaming placement is specialised | [c2pa-vtt](https://github.com/writerslogic/c2pa-vtt) |
+| Unstructured/plain prose | No stable comment location; use invisible codepoints | [c2pa-text](https://crates.io/crates/c2pa-text) |
+
+Line endings must be LF or CRLF (bare CR is rejected). When structured text is carried inside a container (MP4, PDF, ZIP), prefer embedding in the container.
 
 ## Related Crates
 
