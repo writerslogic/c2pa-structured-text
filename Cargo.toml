@@ -1,11 +1,35 @@
 [package]
 name = "c2pa-structured-text"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
-description = "C2PA manifest embedding for structured text formats using ASCII armour delimiters"
+description = "C2PA manifest embedding, hard binding, and validation for structured text formats using ASCII armour delimiters"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/writerslogic/c2pa-structured-text"
 keywords = ["c2pa", "provenance", "text", "embedding"]
 categories = ["encoding", "parser-implementations"]
+exclude = ["/pkg", "/dist", "/.github", "*.jpg"]
+
+[lib]
+# rlib for crates.io consumers; cdylib for the wasm-bindgen (npm) and PyO3
+# (PyPI) builds. Neither cdylib is produced unless its feature is enabled.
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+hard-binding = ["dep:sha2"]
+c2pa = ["dep:c2pa"]
+remote = ["c2pa", "dep:ureq"]
+# JS/WASM bindings for npm (complements c2pa-js, which handles validation).
+wasm = ["hard-binding", "dep:wasm-bindgen"]
+# Python bindings for PyPI (built with maturin).
+python = ["hard-binding", "dep:pyo3"]
 
 [dependencies]
+sha2 = { version = "0.10", optional = true }
+c2pa = { version = "0.89", default-features = false, features = ["rust_native_crypto"], optional = true }
+ureq = { version = "2.12", optional = true }
+wasm-bindgen = { version = "0.2", optional = true }
+pyo3 = { version = "0.25", features = ["extension-module", "abi3-py39"], optional = true }
+
+[package.metadata.docs.rs]
+features = ["hard-binding", "c2pa", "remote"]
