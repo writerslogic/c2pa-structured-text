@@ -92,7 +92,7 @@
 //! No feature is enabled by default; the core embed/extract/binding-range API
 //! has no dependencies.
 
-mod codec;
+pub mod codec;
 mod embed;
 mod error;
 mod extract;
@@ -109,4 +109,7 @@ mod python;
 
 pub use embed::{embed_front_matter, embed_manifest, embed_manifest_at_end, ManifestRef};
 pub use error::Error;
-pub use extract::{classify_reference, extract_manifest, ExtractionResult, Reference};
+pub use extract::{
+    classify_reference, extract_manifest, find_delimiter, ExtractionResult, Reference, BEGIN,
+    DATA_URI_PREFIX, END,
+};

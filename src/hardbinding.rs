@@ -105,7 +105,7 @@ pub fn hashed_bytes(text: &str) -> Result<Vec<u8>, Error> {
 /// Remove `exclusions` from `bytes`, validating that they are ordered,
 /// non-overlapping, and within bounds as a validator must (see *Validating a
 /// data hash*).
-pub(crate) fn apply_exclusions(bytes: &[u8], exclusions: &[Exclusion]) -> Result<Vec<u8>, Error> {
+pub fn apply_exclusions(bytes: &[u8], exclusions: &[Exclusion]) -> Result<Vec<u8>, Error> {
     let mut cursor = 0usize;
     let mut out = Vec::with_capacity(bytes.len());
     for ex in exclusions {

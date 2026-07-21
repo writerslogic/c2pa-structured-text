@@ -7,9 +7,12 @@
 use crate::codec;
 use crate::error::Error;
 
-const BEGIN: &str = "-----BEGIN C2PA MANIFEST-----";
-const END: &str = "-----END C2PA MANIFEST-----";
-const DATA_URI_PREFIX: &str = "data:application/c2pa;base64,";
+/// The opening ASCII armour delimiter for a C2PA manifest block.
+pub const BEGIN: &str = "-----BEGIN C2PA MANIFEST-----";
+/// The closing ASCII armour delimiter for a C2PA manifest block.
+pub const END: &str = "-----END C2PA MANIFEST-----";
+/// The URI prefix marking an inline (embedded) C2PA Manifest Store.
+pub const DATA_URI_PREFIX: &str = "data:application/c2pa;base64,";
 
 /// The located manifest block: the reference between the delimiters and the
 /// byte span of the block's line(s) within the file.
@@ -121,7 +124,9 @@ fn looks_like_uri(reference: &str) -> bool {
     }
 }
 
-fn find_delimiter(haystack: &[u8], needle: &str) -> Option<usize> {
+/// Locate the first occurrence of `needle` in `haystack` by a byte-window
+/// search, returning its start offset.
+pub fn find_delimiter(haystack: &[u8], needle: &str) -> Option<usize> {
     let needle = needle.as_bytes();
     haystack.windows(needle.len()).position(|w| w == needle)
 }
