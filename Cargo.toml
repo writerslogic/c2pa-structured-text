@@ -2,8 +2,11 @@
 name = "c2pa-structured-text"
 version = "0.2.0"
 edition = "2021"
+# One MSRV across the crate family; verified with `cargo +1.87 check`.
+rust-version = "1.87"
 description = "C2PA manifest embedding, hard binding, and validation for structured text formats using ASCII armour delimiters"
 license = "MIT OR Apache-2.0"
+readme = "README.md"
 repository = "https://github.com/writerslogic/c2pa-structured-text"
 keywords = ["c2pa", "provenance", "text", "embedding"]
 categories = ["encoding", "parser-implementations"]

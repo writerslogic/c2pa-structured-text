@@ -33,6 +33,43 @@ pub enum Error {
     UnsupportedAlgorithm(String),
 }
 
+impl Error {
+    /// The registered C2PA validation status code for this error, or `None`
+    /// when the condition carries no status code.
+    ///
+    /// The specification defines no status codes specific to structured text —
+    /// unlike HTML or unstructured text, which each have their own — so every
+    /// locating outcome here returns `None`. Only the data-hash conditions map
+    /// to codes, and those are the generic ones shared by every embedding
+    /// method.
+    ///
+    /// Every crate in this family exposes this method, so a dispatcher handling
+    /// several embedding methods can ask the same question of any of them.
+    pub fn code(&self) -> Option<&'static str> {
+        Some(match self {
+            Self::MalformedExclusion => "assertion.dataHash.malformed",
+            Self::HashMismatch => "assertion.dataHash.mismatch",
+            Self::UnsupportedAlgorithm(_) => "algorithm.unsupported",
+            Self::NotFound
+            | Self::MultipleBlocks
+            | Self::EmptyReference
+            | Self::MalformedReference(_)
+            | Self::BareCarriageReturn
+            | Self::ManifestDecode(_) => return None,
+        })
+    }
+
+    /// Whether this error means the asset carries no provenance at all, as
+    /// opposed to provenance that was found and rejected.
+    ///
+    /// [`Error::MultipleBlocks`] counts: the specification requires an asset
+    /// with more than one manifest block to be treated as if no manifests were
+    /// located, rather than reported as a failure.
+    pub fn is_no_manifest_located(&self) -> bool {
+        matches!(self, Self::NotFound | Self::MultipleBlocks)
+    }
+}
+
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -59,6 +96,77 @@ impl std::error::Error for Error {
         match self {
             Self::ManifestDecode(e) => Some(e),
             _ => None,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn all() -> Vec<Error> {
+        vec![
+            Error::NotFound,
+            Error::MultipleBlocks,
+            Error::EmptyReference,
+            Error::MalformedReference("x".into()),
+            Error::BareCarriageReturn,
+            Error::MalformedExclusion,
+            Error::HashMismatch,
+            Error::UnsupportedAlgorithm("sha1".into()),
+        ]
+    }
+
+    /// Guards against inventing a code. Structured text has no format-specific
+    /// codes, so only the three generic ones may ever appear here.
+    #[test]
+    fn every_code_is_a_registered_identifier() {
+        for e in all() {
+            if let Some(code) = e.code() {
+                assert!(
+                    matches!(
+                        code,
+                        "assertion.dataHash.malformed"
+                            | "assertion.dataHash.mismatch"
+                            | "algorithm.unsupported"
+                    ),
+                    "{e:?} reports an unregistered code: {code}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn no_structured_text_specific_code_is_emitted() {
+        // `manifest.structuredText.*` was removed from the specification;
+        // emitting one would be inventing specification.
+        for e in all() {
+            if let Some(code) = e.code() {
+                assert!(!code.starts_with("manifest."), "{e:?} emits {code}");
+            }
+        }
+    }
+
+    #[test]
+    fn locating_outcomes_carry_no_code() {
+        for e in [Error::NotFound, Error::MultipleBlocks] {
+            assert_eq!(e.code(), None, "{e:?} must not report a status code");
+            assert!(
+                e.is_no_manifest_located(),
+                "{e:?} must classify as unsigned"
+            );
+        }
+    }
+
+    #[test]
+    fn binding_failures_are_not_no_manifest_located() {
+        for e in [
+            Error::MalformedExclusion,
+            Error::HashMismatch,
+            Error::UnsupportedAlgorithm("sha1".into()),
+        ] {
+            assert!(!e.is_no_manifest_located(), "{e:?} misclassified");
+            assert!(e.code().is_some(), "{e:?} should report a code");
         }
     }
 }
