@@ -1,6 +1,6 @@
 [package]
 name = "c2pa-structured-text"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 # One MSRV across the crate family; verified with `cargo +1.87 check`.
 rust-version = "1.87"
