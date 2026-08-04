@@ -65,8 +65,11 @@ pub(crate) fn locate_block(text: &str) -> Result<Block, Error> {
 /// and length of the block's line(s) in the source text.
 #[derive(Debug)]
 pub struct ExtractionResult {
+    /// The manifest reference found between the delimiters.
     pub reference: String,
+    /// Byte offset of the first byte of the manifest block.
     pub offset: usize,
+    /// Byte length of the block, including its line terminator.
     pub length: usize,
 }
 
@@ -88,7 +91,9 @@ pub fn extract_manifest(text: &str) -> Result<ExtractionResult, Error> {
 /// Store decoded from a `data:application/c2pa;base64,` URI.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Reference {
+    /// A URI to an external C2PA Manifest Store.
     Url(String),
+    /// A Manifest Store decoded from an inline `data:` URI.
     Embedded(Vec<u8>),
 }
 

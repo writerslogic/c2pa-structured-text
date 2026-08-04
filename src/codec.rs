@@ -12,6 +12,7 @@
 
 const CHARS: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
+/// Encode `input` as standard Base64 (RFC 4648 §4, with padding).
 pub fn encode(input: &[u8]) -> String {
     let mut out = Vec::with_capacity(input.len().div_ceil(3) * 4);
     for chunk in input.chunks(3) {
@@ -90,9 +91,13 @@ pub fn decode(input: &str) -> Result<Vec<u8>, DecodeError> {
 
 #[derive(Debug, PartialEq, Eq)]
 #[allow(clippy::enum_variant_names)]
+/// Why a Base64 manifest reference failed to decode.
 pub enum DecodeError {
+    /// The input length is not a multiple of four.
     InvalidLength,
+    /// Padding is missing, misplaced, or over-long.
     InvalidPadding,
+    /// A byte outside the standard Base64 alphabet.
     InvalidCharacter(u8),
 }
 

@@ -4,6 +4,7 @@
 
 use std::fmt;
 
+/// Errors from locating a manifest block or validating the hard binding.
 #[derive(Debug)]
 pub enum Error {
     /// No `-----BEGIN/END C2PA MANIFEST-----` block was located.

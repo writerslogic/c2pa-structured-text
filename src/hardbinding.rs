@@ -37,7 +37,9 @@ use crate::extract::locate_block;
 /// CDDL (`start`, `length`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Exclusion {
+    /// Byte offset of the first excluded byte.
     pub start: usize,
+    /// Number of bytes excluded.
     pub length: usize,
 }
 
@@ -153,8 +155,11 @@ mod hashing {
     /// A C2PA-allowed hash algorithm for the data hash (SHA2-256/384/512).
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub enum Algorithm {
+        /// SHA-256, the C2PA `sha256` identifier.
         Sha256,
+        /// SHA-384, the C2PA `sha384` identifier.
         Sha384,
+        /// SHA-512, the C2PA `sha512` identifier.
         Sha512,
     }
 
@@ -167,6 +172,10 @@ mod hashing {
                 Algorithm::Sha512 => "sha512",
             }
         }
+
+        /// Parse a C2PA algorithm identifier, rejecting any outside the
+
+        /// allowed list.
 
         pub fn from_id(id: &str) -> Result<Self, Error> {
             match id {
@@ -189,9 +198,13 @@ mod hashing {
     /// A computed `c2pa.hash.data` assertion for a structured text asset.
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub struct DataHash {
+        /// Byte ranges excluded from the hash, in ascending order.
         pub exclusions: Vec<Exclusion>,
+        /// The hash algorithm identifier, e.g. `sha256`.
         pub alg: String,
+        /// The computed digest.
         pub hash: Vec<u8>,
+        /// Optional human-readable name for the assertion.
         pub name: Option<String>,
     }
 

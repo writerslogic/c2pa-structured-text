@@ -18,7 +18,9 @@ const END: &str = "-----END C2PA MANIFEST-----";
 /// Store (preferred) or the store itself, which is encoded as a
 /// `data:application/c2pa;base64,` URI.
 pub enum ManifestRef<'a> {
+    /// A URI to an external C2PA Manifest Store (the preferred form).
     Url(&'a str),
+    /// Raw Manifest Store bytes, embedded inline as a `data:` URI.
     Embedded(&'a [u8]),
 }
 

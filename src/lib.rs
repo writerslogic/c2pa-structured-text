@@ -92,6 +92,8 @@
 //! No feature is enabled by default; the core embed/extract/binding-range API
 //! has no dependencies.
 
+#![forbid(unsafe_code)]
+#![warn(missing_docs)]
 pub mod codec;
 mod embed;
 mod error;
