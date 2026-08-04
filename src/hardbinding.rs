@@ -173,10 +173,8 @@ mod hashing {
             }
         }
 
-        /// Parse a C2PA algorithm identifier, rejecting any outside the
-
-        /// allowed list.
-
+        /// Parse a C2PA algorithm identifier, rejecting any outside the allowed
+        /// list.
         pub fn from_id(id: &str) -> Result<Self, Error> {
             match id {
                 "sha256" => Ok(Algorithm::Sha256),
