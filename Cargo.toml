@@ -32,7 +32,7 @@ sha2 = { version = "0.10", optional = true }
 c2pa = { version = "0.89", default-features = false, features = ["rust_native_crypto"], optional = true }
 ureq = { version = "2.12", optional = true }
 wasm-bindgen = { version = "0.2", optional = true }
-pyo3 = { version = "0.25", features = ["extension-module", "abi3-py39"], optional = true }
+pyo3 = { version = "0.29", features = ["extension-module", "abi3-py39"], optional = true }
 
 [package.metadata.docs.rs]
 features = ["hard-binding", "c2pa", "remote"]
