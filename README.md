@@ -1,3 +1,7 @@
+# c2pa-structured-text
+
+_C2PA manifest embedding, hard binding, and validation for structured text formats using ASCII armour delimiters._
+
 <p align="center">
   <a href="https://crates.io/crates/c2pa-structured-text"><img src="https://img.shields.io/crates/v/c2pa-structured-text.svg" alt="crates.io"></a>
   <a href="https://docs.rs/c2pa-structured-text"><img src="https://docs.rs/c2pa-structured-text/badge.svg" alt="docs.rs"></a>
@@ -22,13 +26,21 @@ This crate owns three things:
 2. **Hard binding** — define and compute the exact `c2pa.hash.data` coverage for structured text, and verify it.
 3. **A validation bridge** to [`c2pa-rs`](https://crates.io/crates/c2pa) for signature, trust, and assertion validation — which this crate does *not* reimplement.
 
+> [!NOTE]
 > This crate is not certified or conformance-tested by the C2PA. It implements the structured-text embedding and hard binding as specified, and delegates cryptographic validation to `c2pa-rs`.
 
 ## Quick Start
 
 ```toml
 [dependencies]
-c2pa-structured-text = "0.1"
+c2pa-structured-text = "0.3"
+```
+
+The same crate is published for JavaScript/WebAssembly and Python, built from this source:
+
+```bash
+npm install c2pa-structured-text   # wasm-bindgen build
+pip install c2pa-structured-text   # PyO3 abi3 wheel, CPython 3.9+
 ```
 
 ### Embed a manifest reference
