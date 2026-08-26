@@ -1,0 +1,32 @@
+# OSV-Scanner ignore list.
+# See https://github.com/google/osv-scanner#ignore-vulnerabilities-by-id
+#
+# Referenced by code-scanning alert #39 (Scorecard "Vulnerabilities" check),
+# which flags two RustSec advisories pulled in transitively through the
+# optional `c2pa` (c2pa-rs) dependency.
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2023-0071"
+reason = """
+Marvin Attack timing side-channel in the `rsa` crate (0.9.10), pulled in
+transitively via c2pa-rs (c2pa -> rsa / num-bigint-dig). No fixed version of
+`rsa` exists upstream (advisory: "No fixed upgrade is available"), and the
+crate is several dependency levels below our direct control.
+
+Not reachable from this crate: c2pa-structured-text only uses c2pa::Reader
+for signature/trust/hard-binding *verification* (see src/bridge.rs); it never
+constructs a c2pa::Builder or Signer, so no RSA private-key (decrypt/sign)
+operation -- the operation the Marvin Attack targets -- executes in this
+crate's code paths. RSA usage here is limited to public-key signature
+verification.
+"""
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0370"
+reason = """
+`proc-macro-error` (1.0.4) is unmaintained (not a known vulnerability), pulled
+in transitively via c2pa-rs (c2pa -> iref -> static-regular-grammar ->
+proc-macro-error), a build-time proc-macro dependency of a transitive crate.
+No upgrade path is available from this crate; tracking for upstream c2pa-rs
+to move off it.
+"""
