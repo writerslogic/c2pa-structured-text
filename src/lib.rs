@@ -42,7 +42,7 @@
 //! use c2pa_structured_text::{embed_manifest, extract_manifest, ManifestRef};
 //!
 //! for prefix in ["#", "//", "--"] {
-//!     let signed = embed_manifest("value = 1\n", ManifestRef::Url("https://ex.com/m.c2pa"), prefix, None);
+//!     let signed = embed_manifest("value = 1\n", ManifestRef::Url("https://ex.com/m.c2pa"), prefix, None).unwrap();
 //!     assert!(signed.starts_with(prefix));
 //!     assert_eq!(extract_manifest(&signed).unwrap().reference, "https://ex.com/m.c2pa");
 //! }
@@ -53,7 +53,7 @@
 //! ```
 //! use c2pa_structured_text::{embed_manifest, extract_manifest, ManifestRef};
 //!
-//! let signed = embed_manifest("body {}\n", ManifestRef::Url("https://ex.com/m.c2pa"), "/*", Some("*/"));
+//! let signed = embed_manifest("body {}\n", ManifestRef::Url("https://ex.com/m.c2pa"), "/*", Some("*/")).unwrap();
 //! assert!(signed.contains("-----END C2PA MANIFEST----- */"));
 //! assert_eq!(extract_manifest(&signed).unwrap().reference, "https://ex.com/m.c2pa");
 //! ```
@@ -63,7 +63,7 @@
 //! ```
 //! use c2pa_structured_text::{embed_manifest, extract_manifest, ManifestRef};
 //!
-//! let signed = embed_manifest("# Title\n", ManifestRef::Url("https://ex.com/m.c2pa"), "<!--", Some("-->"));
+//! let signed = embed_manifest("# Title\n", ManifestRef::Url("https://ex.com/m.c2pa"), "<!--", Some("-->")).unwrap();
 //! assert!(signed.starts_with("<!-- -----BEGIN C2PA MANIFEST-----"));
 //! assert_eq!(extract_manifest(&signed).unwrap().reference, "https://ex.com/m.c2pa");
 //! ```
@@ -73,7 +73,7 @@
 //! ```
 //! use c2pa_structured_text::{embed_front_matter, extract_manifest, ManifestRef};
 //!
-//! let signed = embed_front_matter("title: doc\n", ManifestRef::Url("https://ex.com/m.c2pa"), "---");
+//! let signed = embed_front_matter("title: doc\n", ManifestRef::Url("https://ex.com/m.c2pa"), "---").unwrap();
 //! assert!(signed.starts_with("---\n-----BEGIN C2PA MANIFEST-----\n"));
 //! assert_eq!(extract_manifest(&signed).unwrap().reference, "https://ex.com/m.c2pa");
 //! ```

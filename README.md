@@ -53,7 +53,7 @@ let signed = embed_manifest(
     ManifestRef::Url("https://example.com/manifests/abc.c2pa"),
     "#",   // comment prefix
     None,  // no comment suffix
-);
+).unwrap();
 // # -----BEGIN C2PA MANIFEST----- https://example.com/manifests/abc.c2pa -----END C2PA MANIFEST-----
 // print('hello')
 ```
@@ -94,7 +94,7 @@ let signed = c2pa_structured_text::embed_manifest(
     c2pa_structured_text::ManifestRef::Url("https://example.com/m.c2pa"),
     "#",
     None,
-);
+).unwrap();
 let data_hash = compute_data_hash(&signed, Algorithm::Sha256).unwrap();
 verify_data_hash(&signed, &data_hash).unwrap();
 # }

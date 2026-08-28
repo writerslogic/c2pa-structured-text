@@ -9,7 +9,7 @@
 //! or XML declaration), or inside a front matter section. Placement determines
 //! the hard-binding exclusion range; see [`crate::hardbinding`].
 
-use crate::codec;
+use crate::{codec, error::Error, extract};
 
 const BEGIN: &str = "-----BEGIN C2PA MANIFEST-----";
 const END: &str = "-----END C2PA MANIFEST-----";
@@ -49,9 +49,10 @@ pub fn embed_manifest(
     manifest: ManifestRef<'_>,
     comment_prefix: &str,
     comment_suffix: Option<&str>,
-) -> String {
+) -> Result<String, Error> {
+    validate_target(text)?;
     let line = single_line(&manifest.render(), comment_prefix, comment_suffix);
-    format!("{line}\n{text}")
+    Ok(format!("{line}\n{text}"))
 }
 
 /// Embed a manifest block as the last line of the file. Use this when the first
@@ -66,15 +67,16 @@ pub fn embed_manifest_at_end(
     manifest: ManifestRef<'_>,
     comment_prefix: &str,
     comment_suffix: Option<&str>,
-) -> String {
+) -> Result<String, Error> {
+    validate_target(text)?;
     let line = single_line(&manifest.render(), comment_prefix, comment_suffix);
     if text.is_empty() {
-        return line;
+        return Ok(line);
     }
     if text.ends_with('\n') {
-        format!("{text}{line}")
+        Ok(format!("{text}{line}"))
     } else {
-        format!("{text}\n{line}")
+        Ok(format!("{text}\n{line}"))
     }
 }
 
@@ -84,16 +86,29 @@ pub fn embed_manifest_at_end(
 /// If `text` already opens with `fm_delim` on its first line the C2PA block is
 /// inserted at the top of that existing front matter; otherwise a new front
 /// matter section containing only the block is prepended.
-pub fn embed_front_matter(text: &str, manifest: ManifestRef<'_>, fm_delim: &str) -> String {
+pub fn embed_front_matter(
+    text: &str,
+    manifest: ManifestRef<'_>,
+    fm_delim: &str,
+) -> Result<String, Error> {
+    validate_target(text)?;
     let reference = manifest.render();
     let block = format!("{BEGIN}\n{reference}\n{END}");
 
     let opening = format!("{fm_delim}\n");
     if let Some(rest) = text.strip_prefix(&opening) {
-        format!("{opening}{block}\n{rest}")
+        Ok(format!("{opening}{block}\n{rest}"))
     } else {
-        format!("{fm_delim}\n{block}\n{fm_delim}\n{text}")
+        Ok(format!("{fm_delim}\n{block}\n{fm_delim}\n{text}"))
     }
+}
+
+fn validate_target(text: &str) -> Result<(), Error> {
+    extract::reject_bare_cr(text.as_bytes())?;
+    if extract::find_delimiter(text.as_bytes(), extract::BEGIN).is_some() {
+        return Err(Error::AlreadyEmbedded);
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -108,7 +123,8 @@ mod tests {
             ManifestRef::Url("https://example.com/m.c2pa"),
             "#",
             None,
-        );
+        )
+        .unwrap();
         assert!(result.starts_with("# -----BEGIN C2PA MANIFEST-----"));
         assert!(result.contains("https://example.com/m.c2pa"));
         assert!(result.contains("-----END C2PA MANIFEST-----"));
@@ -122,7 +138,8 @@ mod tests {
             ManifestRef::Url("https://example.com/m.c2pa"),
             "/*",
             Some("*/"),
-        );
+        )
+        .unwrap();
         assert!(result.starts_with("/* -----BEGIN C2PA MANIFEST-----"));
         assert!(result.contains("-----END C2PA MANIFEST----- */"));
     }
@@ -130,7 +147,7 @@ mod tests {
     #[test]
     fn embed_data_uri() {
         let bytes = b"test manifest";
-        let result = embed_manifest("content", ManifestRef::Embedded(bytes), "#", None);
+        let result = embed_manifest("content", ManifestRef::Embedded(bytes), "#", None).unwrap();
         assert!(result.contains("data:application/c2pa;base64,"));
     }
 
@@ -142,7 +159,8 @@ mod tests {
             ManifestRef::Url("https://example.com/m.c2pa"),
             "#",
             None,
-        );
+        )
+        .unwrap();
         assert!(result.starts_with("#!/usr/bin/env python3"));
         assert!(result.ends_with("-----END C2PA MANIFEST-----"));
     }
@@ -150,7 +168,8 @@ mod tests {
     #[test]
     fn embed_at_end_adds_newline_separator() {
         let result =
-            embed_manifest_at_end("no trailing newline", ManifestRef::Url("u"), "//", None);
+            embed_manifest_at_end("no trailing newline", ManifestRef::Url("u"), "//", None)
+                .unwrap();
         assert_eq!(
             result,
             "no trailing newline\n// -----BEGIN C2PA MANIFEST----- u -----END C2PA MANIFEST-----"
@@ -161,16 +180,30 @@ mod tests {
     fn embed_front_matter_into_existing() {
         let text = "---\ntitle: doc\n---\nbody\n";
         let result =
-            embed_front_matter(text, ManifestRef::Url("https://example.com/m.c2pa"), "---");
+            embed_front_matter(text, ManifestRef::Url("https://example.com/m.c2pa"), "---")
+                .unwrap();
         assert!(result.starts_with("---\n-----BEGIN C2PA MANIFEST-----\n"));
         assert!(result.contains("\ntitle: doc\n"));
     }
 
     #[test]
     fn embed_front_matter_creates_section() {
-        let result = embed_front_matter("# Heading\n", ManifestRef::Url("u"), "---");
+        let result = embed_front_matter("# Heading\n", ManifestRef::Url("u"), "---").unwrap();
         assert!(result.starts_with(
             "---\n-----BEGIN C2PA MANIFEST-----\nu\n-----END C2PA MANIFEST-----\n---\n"
+        ));
+    }
+
+    #[test]
+    fn embedding_rejects_bare_cr_and_an_existing_block() {
+        assert!(matches!(
+            embed_manifest("one\rtwo", ManifestRef::Url("u"), "#", None),
+            Err(Error::BareCarriageReturn)
+        ));
+        let once = embed_manifest("body", ManifestRef::Url("u"), "#", None).unwrap();
+        assert!(matches!(
+            embed_manifest(&once, ManifestRef::Url("v"), "#", None),
+            Err(Error::AlreadyEmbedded)
         ));
     }
 }

@@ -12,6 +12,9 @@ pub enum Error {
     /// More than one manifest block was found. Per the specification the asset
     /// shall then be treated as if no manifests were located.
     MultipleBlocks,
+    /// Embedding was requested for an asset that already contains a manifest
+    /// block. The structured-text method does not define replacement.
+    AlreadyEmbedded,
     /// The block is present but the reference between the delimiters is empty.
     EmptyReference,
     /// The reference is neither a resolvable URI nor a `data:` URI.
@@ -53,6 +56,7 @@ impl Error {
             Self::UnsupportedAlgorithm(_) => "algorithm.unsupported",
             Self::NotFound
             | Self::MultipleBlocks
+            | Self::AlreadyEmbedded
             | Self::EmptyReference
             | Self::MalformedReference(_)
             | Self::BareCarriageReturn
@@ -76,6 +80,7 @@ impl fmt::Display for Error {
         match self {
             Self::NotFound => write!(f, "no manifest block found"),
             Self::MultipleBlocks => write!(f, "multiple manifest blocks found"),
+            Self::AlreadyEmbedded => write!(f, "a manifest block is already present"),
             Self::EmptyReference => write!(f, "empty manifest reference"),
             Self::MalformedReference(s) => write!(f, "malformed manifest reference: {s}"),
             Self::BareCarriageReturn => {
@@ -109,6 +114,7 @@ mod tests {
         vec![
             Error::NotFound,
             Error::MultipleBlocks,
+            Error::AlreadyEmbedded,
             Error::EmptyReference,
             Error::MalformedReference("x".into()),
             Error::BareCarriageReturn,
