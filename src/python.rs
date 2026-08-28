@@ -27,13 +27,14 @@ fn embed_manifest_url(
     url: &str,
     comment_prefix: &str,
     comment_suffix: Option<String>,
-) -> String {
+) -> PyResult<String> {
     embed::embed_manifest(
         text,
         embed::ManifestRef::Url(url),
         comment_prefix,
         comment_suffix.as_deref(),
     )
+    .map_err(to_py)
 }
 
 /// Embed a manifest block carrying the manifest store inline as a
@@ -45,13 +46,14 @@ fn embed_manifest_embedded(
     manifest: &[u8],
     comment_prefix: &str,
     comment_suffix: Option<String>,
-) -> String {
+) -> PyResult<String> {
     embed::embed_manifest(
         text,
         embed::ManifestRef::Embedded(manifest),
         comment_prefix,
         comment_suffix.as_deref(),
     )
+    .map_err(to_py)
 }
 
 /// Extract the manifest reference string from structured text.

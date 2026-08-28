@@ -25,13 +25,14 @@ pub fn embed_manifest_url(
     url: &str,
     comment_prefix: &str,
     comment_suffix: Option<String>,
-) -> String {
+) -> Result<String, JsError> {
     embed::embed_manifest(
         text,
         embed::ManifestRef::Url(url),
         comment_prefix,
         comment_suffix.as_deref(),
     )
+    .map_err(to_js)
 }
 
 /// Embed a manifest block carrying the manifest store inline as a
@@ -42,13 +43,14 @@ pub fn embed_manifest_embedded(
     manifest: &[u8],
     comment_prefix: &str,
     comment_suffix: Option<String>,
-) -> String {
+) -> Result<String, JsError> {
     embed::embed_manifest(
         text,
         embed::ManifestRef::Embedded(manifest),
         comment_prefix,
         comment_suffix.as_deref(),
     )
+    .map_err(to_js)
 }
 
 /// Extract the manifest reference string from structured text. Throws if no

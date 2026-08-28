@@ -31,6 +31,7 @@ pub(crate) struct Block {
 
 pub(crate) fn locate_block(text: &str) -> Result<Block, Error> {
     let bytes = text.as_bytes();
+    reject_bare_cr(bytes)?;
 
     let begin_pos = find_delimiter(bytes, BEGIN).ok_or(Error::NotFound)?;
     let after_begin = begin_pos + BEGIN.len();
@@ -106,11 +107,32 @@ pub fn classify_reference(reference: &str) -> Result<Reference, Error> {
     if let Some(b64) = reference.strip_prefix(DATA_URI_PREFIX) {
         let bytes = codec::decode(b64).map_err(Error::ManifestDecode)?;
         Ok(Reference::Embedded(bytes))
+    } else if reference
+        .get(..5)
+        .is_some_and(|scheme| scheme.eq_ignore_ascii_case("data:"))
+    {
+        Err(Error::MalformedReference(reference.to_string()))
     } else if looks_like_uri(reference) {
         Ok(Reference::Url(reference.to_string()))
     } else {
         Err(Error::MalformedReference(reference.to_string()))
     }
+}
+
+/// Reject bare CR while accepting LF and CRLF line endings.
+pub(crate) fn reject_bare_cr(bytes: &[u8]) -> Result<(), Error> {
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'\r' {
+            if bytes.get(i + 1) != Some(&b'\n') {
+                return Err(Error::BareCarriageReturn);
+            }
+            i += 2;
+        } else {
+            i += 1;
+        }
+    }
+    Ok(())
 }
 
 fn looks_like_uri(reference: &str) -> bool {
@@ -197,6 +219,23 @@ mod tests {
         assert!(matches!(
             classify_reference("not a reference"),
             Err(Error::MalformedReference(_))
+        ));
+    }
+
+    #[test]
+    fn classify_rejects_a_data_uri_with_the_wrong_media_type() {
+        assert!(matches!(
+            classify_reference("data:text/plain;base64,Zm9v"),
+            Err(Error::MalformedReference(_))
+        ));
+    }
+
+    #[test]
+    fn extraction_rejects_bare_cr() {
+        let text = "# -----BEGIN C2PA MANIFEST----- u -----END C2PA MANIFEST-----\rbody";
+        assert!(matches!(
+            extract_manifest(text),
+            Err(Error::BareCarriageReturn)
         ));
     }
 }

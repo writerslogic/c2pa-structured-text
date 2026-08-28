@@ -31,7 +31,7 @@
 //! not treat the structured-text hard binding as robust to editing; it is not.
 
 use crate::error::Error;
-use crate::extract::locate_block;
+use crate::extract::{locate_block, reject_bare_cr};
 
 /// A byte range excluded from the data hash, matching the `EXCLUSION_RANGE-map`
 /// CDDL (`start`, `length`).
@@ -130,21 +130,6 @@ pub fn apply_exclusions(bytes: &[u8], exclusions: &[Exclusion]) -> Result<Vec<u8
     Ok(out)
 }
 
-fn reject_bare_cr(bytes: &[u8]) -> Result<(), Error> {
-    let mut i = 0;
-    while i < bytes.len() {
-        if bytes[i] == b'\r' {
-            if bytes.get(i + 1) != Some(&b'\n') {
-                return Err(Error::BareCarriageReturn);
-            }
-            i += 2;
-        } else {
-            i += 1;
-        }
-    }
-    Ok(())
-}
-
 #[cfg(feature = "hard-binding")]
 mod hashing {
     use super::{apply_exclusions, manifest_exclusion, reject_bare_cr, Exclusion, DATA_HASH_LABEL};
@@ -202,6 +187,9 @@ mod hashing {
         pub alg: String,
         /// The computed digest.
         pub hash: Vec<u8>,
+        /// Required CDDL padding bytes; empty unless a claim generator reserves
+        /// additional space.
+        pub pad: Vec<u8>,
         /// Optional human-readable name for the assertion.
         pub name: Option<String>,
     }
@@ -223,10 +211,11 @@ mod hashing {
                 .map(|e| format!("{{\"start\":{},\"length\":{}}}", e.start, e.length))
                 .collect();
             let mut json = format!(
-                "{{\"exclusions\":[{}],\"alg\":\"{}\",\"hash\":\"{}\"",
+                "{{\"exclusions\":[{}],\"alg\":\"{}\",\"hash\":\"{}\",\"pad\":\"{}\"",
                 ranges.join(","),
                 self.alg,
-                codec::encode(&self.hash)
+                codec::encode(&self.hash),
+                codec::encode(&self.pad)
             );
             if let Some(name) = &self.name {
                 json.push_str(&format!(",\"name\":\"{}\"", name));
@@ -245,6 +234,7 @@ mod hashing {
             exclusions: vec![exclusion],
             alg: alg.id().to_string(),
             hash: alg.hash(&covered),
+            pad: Vec::new(),
             name: None,
         })
     }
@@ -259,7 +249,8 @@ mod hashing {
     pub fn verify_data_hash(text: &str, data_hash: &DataHash) -> Result<(), Error> {
         reject_bare_cr(text.as_bytes())?;
         let alg = Algorithm::from_id(&data_hash.alg)?;
-        if data_hash.exclusions.is_empty() {
+        let located = manifest_exclusion(text)?;
+        if data_hash.exclusions != [located] {
             return Err(Error::MalformedExclusion);
         }
         let covered = apply_exclusions(text.as_bytes(), &data_hash.exclusions)?;
@@ -283,7 +274,7 @@ mod tests {
 
     #[test]
     fn exclusion_at_beginning() {
-        let embedded = embed_manifest("print('hi')\n", ManifestRef::Url(URL), "#", None);
+        let embedded = embed_manifest("print('hi')\n", ManifestRef::Url(URL), "#", None).unwrap();
         let ex = manifest_exclusion(&embedded).unwrap();
         assert_eq!(ex.start, 0);
         // Removing the exclusion recovers the original content exactly.
@@ -292,7 +283,8 @@ mod tests {
 
     #[test]
     fn exclusion_at_end_excludes_preceding_newline() {
-        let embedded = embed_manifest_at_end("print('hi')\n", ManifestRef::Url(URL), "#", None);
+        let embedded =
+            embed_manifest_at_end("print('hi')\n", ManifestRef::Url(URL), "#", None).unwrap();
         let ex = manifest_exclusion(&embedded).unwrap();
         // The block sits at EOF; the newline before it is part of the range.
         assert_eq!(ex.start + ex.length, embedded.len());
@@ -311,7 +303,7 @@ mod tests {
 
     #[test]
     fn exclusion_front_matter_keeps_fences() {
-        let embedded = embed_front_matter("title: doc\n", ManifestRef::Url(URL), "---");
+        let embedded = embed_front_matter("title: doc\n", ManifestRef::Url(URL), "---").unwrap();
         // The `---` fences are preserved; only BEGIN..END lines are excluded.
         let covered = String::from_utf8(hashed_bytes(&embedded).unwrap()).unwrap();
         assert!(covered.starts_with("---\n"));
@@ -373,5 +365,28 @@ mod tests {
             apply_exclusions(bytes, &ranges),
             Err(Error::HashMismatch)
         ));
+    }
+
+    #[cfg(feature = "hard-binding")]
+    #[test]
+    fn verification_rejects_an_additional_exclusion() {
+        let embedded = embed_manifest("body\n", ManifestRef::Url(URL), "#", None).unwrap();
+        let mut data_hash = compute_data_hash(&embedded, Algorithm::Sha256).unwrap();
+        data_hash.exclusions.push(Exclusion {
+            start: embedded.len() - 1,
+            length: 1,
+        });
+        assert!(matches!(
+            verify_data_hash(&embedded, &data_hash),
+            Err(Error::MalformedExclusion)
+        ));
+    }
+
+    #[cfg(feature = "hard-binding")]
+    #[test]
+    fn json_contains_the_required_pad_field() {
+        let embedded = embed_manifest("body\n", ManifestRef::Url(URL), "#", None).unwrap();
+        let data_hash = compute_data_hash(&embedded, Algorithm::Sha256).unwrap();
+        assert!(data_hash.to_json().contains("\"pad\":\"\""));
     }
 }

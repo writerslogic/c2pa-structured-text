@@ -81,7 +81,7 @@ fn has_code(reader: &c2pa::Reader, code: &str) -> bool {
 #[test]
 fn embed_sign_validate_round_trip() {
     let source = "import os\n\nprint(os.getcwd())\n";
-    let embedded = embed_manifest(source, ManifestRef::Url(URL), "#", None);
+    let embedded = embed_manifest(source, ManifestRef::Url(URL), "#", None).unwrap();
     let manifest = sign_for(&embedded);
 
     let reader = validate_with_manifest(&embedded, &manifest, TEXT_FORMAT).expect("validate");
@@ -98,7 +98,7 @@ fn end_placement_round_trip() {
     // A shebang forces end-of-file placement; the exclusion covers the
     // preceding newline, which c2pa-rs must reproduce for the hash to match.
     let source = "#!/usr/bin/env bash\nset -euo pipefail\necho hi\n";
-    let embedded = embed_manifest_at_end(source, ManifestRef::Url(URL), "#", None);
+    let embedded = embed_manifest_at_end(source, ManifestRef::Url(URL), "#", None).unwrap();
     let manifest = sign_for(&embedded);
 
     let reader = validate_with_manifest(&embedded, &manifest, TEXT_FORMAT).expect("validate");
@@ -111,7 +111,7 @@ fn end_placement_round_trip() {
 #[test]
 fn front_matter_round_trip() {
     let source = "title: Report\nauthor: Q\n";
-    let embedded = embed_front_matter(source, ManifestRef::Url(URL), "---");
+    let embedded = embed_front_matter(source, ManifestRef::Url(URL), "---").unwrap();
     let manifest = sign_for(&embedded);
 
     let reader = validate_with_manifest(&embedded, &manifest, TEXT_FORMAT).expect("validate");
@@ -124,7 +124,7 @@ fn front_matter_round_trip() {
 #[test]
 fn tampered_content_is_rejected() {
     let source = "SELECT id FROM accounts;\n";
-    let embedded = embed_manifest(source, ManifestRef::Url(URL), "--", None);
+    let embedded = embed_manifest(source, ManifestRef::Url(URL), "--", None).unwrap();
     let manifest = sign_for(&embedded);
 
     // Flip covered bytes without changing length (outside the excluded block).

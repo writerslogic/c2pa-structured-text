@@ -89,7 +89,7 @@ fn tamper_covered(embedded: &str, covered: &[u8]) -> String {
 #[test]
 fn single_line_beginning() {
     for (prefix, suffix, source) in SINGLE_LINE {
-        let embedded = embed_manifest(source, ManifestRef::Url(URL), prefix, *suffix);
+        let embedded = embed_manifest(source, ManifestRef::Url(URL), prefix, *suffix).unwrap();
         assert_round_trip(&embedded, source.as_bytes());
     }
 }
@@ -98,14 +98,14 @@ fn single_line_beginning() {
 fn single_line_end_after_reserved_line() {
     // Shebang and XML declaration force end-of-file placement.
     let script = "#!/usr/bin/env bash\nset -euo pipefail\necho hello\n";
-    let embedded = embed_manifest_at_end(script, ManifestRef::Url(URL), "#", None);
+    let embedded = embed_manifest_at_end(script, ManifestRef::Url(URL), "#", None).unwrap();
     let extracted = extract_manifest(&embedded).unwrap();
     assert_eq!(extracted.reference, URL);
     let dh = compute_data_hash(&embedded, Algorithm::Sha256).unwrap();
     verify_data_hash(&embedded, &dh).unwrap();
 
     let xml = "<?xml version=\"1.0\"?>\n<root><child/></root>\n";
-    let embedded = embed_manifest_at_end(xml, ManifestRef::Url(URL), "<!--", Some("-->"));
+    let embedded = embed_manifest_at_end(xml, ManifestRef::Url(URL), "<!--", Some("-->")).unwrap();
     assert!(embedded
         .trim_end()
         .ends_with("-----END C2PA MANIFEST----- -->"));
@@ -116,12 +116,12 @@ fn single_line_end_after_reserved_line() {
 #[test]
 fn front_matter_multi_line() {
     let markdown = "title: My Document\nauthor: Jane\n";
-    let embedded = embed_front_matter(markdown, ManifestRef::Url(URL), "---");
+    let embedded = embed_front_matter(markdown, ManifestRef::Url(URL), "---").unwrap();
     assert_round_trip(&embedded, markdown.as_bytes());
 
     // TOML front matter fence.
     let toml_fm = "title = \"doc\"\n";
-    let embedded = embed_front_matter(toml_fm, ManifestRef::Url(URL), "+++");
+    let embedded = embed_front_matter(toml_fm, ManifestRef::Url(URL), "+++").unwrap();
     let dh = compute_data_hash(&embedded, Algorithm::Sha256).unwrap();
     verify_data_hash(&embedded, &dh).unwrap();
 }
@@ -132,7 +132,8 @@ fn embedded_data_uri_round_trips() {
     // and the binding is independent of the (excluded) manifest content.
     let manifest_bytes = b"\x00\x01\x02 pretend JUMBF manifest store \xfe\xff";
     let source = "const x = 1;\n";
-    let embedded = embed_manifest(source, ManifestRef::Embedded(manifest_bytes), "//", None);
+    let embedded =
+        embed_manifest(source, ManifestRef::Embedded(manifest_bytes), "//", None).unwrap();
 
     let extracted = extract_manifest(&embedded).unwrap();
     match classify_reference(&extracted.reference).unwrap() {
@@ -152,7 +153,7 @@ fn embedded_data_uri_round_trips() {
 #[test]
 fn crlf_content_binds() {
     let source = "line one\r\nline two\r\n";
-    let embedded = embed_manifest(source, ManifestRef::Url(URL), "//", None);
+    let embedded = embed_manifest(source, ManifestRef::Url(URL), "//", None).unwrap();
     // Re-embed produced an LF after the block; splice CRLF to keep it uniform.
     let embedded = embedded.replacen(
         "-----END C2PA MANIFEST-----\n",
