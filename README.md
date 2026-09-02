@@ -1,14 +1,14 @@
-# c2pa-structured-text
+<!-- repo-header:start -->
+<img src="https://github.com/writerslogic.png?size=160" alt="c2pa-structured-text logo" width="120" align="left">
 
-_C2PA manifest embedding, hard binding, and validation for structured text formats using ASCII armour delimiters._
+<h1>c2pa-structured-text</h1>
 
-<p align="center">
-  <a href="https://crates.io/crates/c2pa-structured-text"><img src="https://img.shields.io/crates/v/c2pa-structured-text.svg" alt="crates.io"></a>
-  <a href="https://docs.rs/c2pa-structured-text"><img src="https://docs.rs/c2pa-structured-text/badge.svg" alt="docs.rs"></a>
-  <a href="https://github.com/writerslogic/c2pa-structured-text/actions/workflows/ci.yml"><img src="https://github.com/writerslogic/c2pa-structured-text/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://scorecard.dev/viewer/?uri=github.com/writerslogic/c2pa-structured-text"><img src="https://api.securityscorecards.dev/projects/github.com/writerslogic/c2pa-structured-text/badge" alt="OpenSSF Scorecard"></a>
-  <a href="#license"><img src="https://img.shields.io/crates/l/c2pa-structured-text.svg" alt="License"></a>
-</p>
+<p><strong>C2PA manifest embedding for structured text formats using ASCII armour delimiters</strong></p>
+
+<br clear="left">
+
+[![CI](https://img.shields.io/github/actions/workflow/status/writerslogic/c2pa-structured-text/release.yml?style=flat-square&labelColor=20232a&branch=main&label=CI)](https://github.com/writerslogic/c2pa-structured-text/actions/workflows/release.yml) [![OpenSSF Scorecard](https://img.shields.io/ossf-scorecard/github.com/writerslogic/c2pa-structured-text?style=flat-square&labelColor=20232a&label=OpenSSF)](https://securityscorecards.dev/viewer/?uri=github.com/writerslogic/c2pa-structured-text) [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/14414/badge)](https://www.bestpractices.dev/projects/14414) [![License](https://img.shields.io/github/license/writerslogic/c2pa-structured-text?style=flat-square&labelColor=20232a&color=007ec6&label=license)](https://github.com/writerslogic/c2pa-structured-text/blob/main/LICENSE-APACHE) [![Code of Conduct](https://img.shields.io/badge/code%20of%20conduct-Contributor%20Covenant%202.1-6a4c93?style=flat-square&labelColor=20232a)](https://github.com/writerslogic/c2pa-structured-text/blob/main/CODE_OF_CONDUCT.md) [![C2PA](https://img.shields.io/badge/standard-C2PA%20related-6a4c93?style=flat-square&labelColor=20232a)](https://c2pa.org/) [![GitHub Sponsors](https://img.shields.io/badge/GitHub%20Sponsors-Sponsor-EA4AAA?style=flat-square&labelColor=20232a)](https://github.com/sponsors/dcondrey) <a href="https://crates.io/crates/c2pa-structured-text"><img src="https://img.shields.io/crates/v/c2pa-structured-text.svg?style=flat-square&labelColor=20232a&color=007ec6" alt="crates.io"></a> <a href="https://docs.rs/c2pa-structured-text"><img src="https://img.shields.io/docsrs/c2pa-structured-text?style=flat-square&labelColor=20232a&color=007ec6" alt="docs.rs"></a>
+<!-- repo-header:end -->
 
 ## Overview
 
