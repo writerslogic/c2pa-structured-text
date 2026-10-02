@@ -125,12 +125,12 @@
   "static_analysis_fixed_justification": "clippy runs with '-D warnings' in both ci.yml and release.yml, so any medium+ finding blocks merge/release by construction; current CI runs are green (gh run list --workflow=ci.yml shows recent 'completed success' runs).",
   "static_analysis_often_status": "Unmet",
   "static_analysis_often_justification": "Clippy runs on push to main and on pull requests (ci.yml triggers: push branches [main], pull_request branches [main]), but there is no scheduled/daily run independent of commits, so it is not running 'at least daily' when there is no commit activity.",
-  "dynamic_analysis_status": "Unmet",
-  "dynamic_analysis_justification": "No dynamic analysis tool (e.g. sanitizers, fuzzing) is configured anywhere in .github/workflows/ or Cargo.toml; only clippy (static) and cargo test (functional, not dynamic-analysis-instrumented) are run.",
+  "dynamic_analysis_status": "Met",
+  "dynamic_analysis_justification": "A cargo-fuzz target (fuzz/fuzz_targets/parse_untrusted.rs) drives the crate's untrusted-input parsers with libFuzzer; fuzz/README.md documents how to run it.",
   "dynamic_analysis_unsafe_status": "N/A",
   "dynamic_analysis_unsafe_justification": "src/lib.rs:95 declares '#![forbid(unsafe_code)]', so the crate contains no memory-unsafe (unsafe) Rust code to require memory-safety dynamic analysis.",
-  "dynamic_analysis_enable_assertions_status": "Unmet",
-  "dynamic_analysis_enable_assertions_justification": "No dynamic analysis configuration exists at all (see dynamic_analysis above), so no assertion-enabling configuration for such a tool exists either.",
+  "dynamic_analysis_enable_assertions_status": "Met",
+  "dynamic_analysis_enable_assertions_justification": "The fuzz target builds with cargo-fuzz's default dev profile, which enables debug assertions and overflow checks, so Rust's integer-overflow and bounds checks act as assertions during fuzzing.",
   "dynamic_analysis_fixed_status": "N/A",
   "dynamic_analysis_fixed_justification": "No dynamic analysis tool is run against this project, so there are no dynamic-analysis findings to fix."
 }
