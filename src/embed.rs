@@ -95,9 +95,15 @@ pub fn embed_front_matter(
     let reference = manifest.render();
     let block = format!("{BEGIN}\n{reference}\n{END}");
 
-    let opening = format!("{fm_delim}\n");
-    if let Some(rest) = text.strip_prefix(&opening) {
-        Ok(format!("{opening}{block}\n{rest}"))
+    // A host document's existing front-matter fence line may end in CRLF; only
+    // checking the LF form here would miss it and prepend a second, bogus
+    // front-matter section ahead of the real one instead of inserting into it.
+    let opening_lf = format!("{fm_delim}\n");
+    let opening_crlf = format!("{fm_delim}\r\n");
+    if let Some(rest) = text.strip_prefix(&opening_crlf) {
+        Ok(format!("{opening_crlf}{block}\r\n{rest}"))
+    } else if let Some(rest) = text.strip_prefix(&opening_lf) {
+        Ok(format!("{opening_lf}{block}\n{rest}"))
     } else {
         Ok(format!("{fm_delim}\n{block}\n{fm_delim}\n{text}"))
     }
@@ -184,6 +190,23 @@ mod tests {
                 .unwrap();
         assert!(result.starts_with("---\n-----BEGIN C2PA MANIFEST-----\n"));
         assert!(result.contains("\ntitle: doc\n"));
+    }
+
+    /// A CRLF-terminated existing front-matter fence must be recognized and
+    /// inserted into, not mistaken for "no existing front matter" and
+    /// prepended with a second, bogus front-matter section.
+    #[test]
+    fn embed_front_matter_into_existing_crlf() {
+        let text = "---\r\ntitle: doc\r\n---\r\nbody\r\n";
+        let result =
+            embed_front_matter(text, ManifestRef::Url("https://example.com/m.c2pa"), "---")
+                .unwrap();
+        assert!(result.starts_with("---\r\n-----BEGIN C2PA MANIFEST-----\n"));
+        assert!(result.contains("\r\ntitle: doc\r\n"));
+        // Inserted into the existing front matter, not prepended with a second,
+        // bogus one: the document still opens with exactly one fence line.
+        assert!(!result.starts_with("---\r\n---\r\n"));
+        assert_eq!(result.matches("-----BEGIN C2PA MANIFEST-----").count(), 1);
     }
 
     #[test]

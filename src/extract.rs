@@ -40,12 +40,43 @@ pub(crate) fn locate_block(text: &str) -> Result<Block, Error> {
         .map(|pos| after_begin + pos)
         .ok_or(Error::NotFound)?;
 
+    // BEGIN and END must each appear on their own line (front-matter form) or
+    // together on one line with the reference between them (single-line form);
+    // the spec requires one of these two shapes. An unconstrained scan would
+    // let END be reached from anywhere later in the file, folding unrelated
+    // file content into both the "reference" and the hash-exclusion range that
+    // this block's span becomes -- content inside that range is excluded from
+    // the hard binding and can be tampered with undetected. Both legal shapes
+    // share one property: strip at most one leading and one trailing newline
+    // from the raw span between the delimiters, and nothing else may remain on
+    // its own line -- i.e. the reference itself must be a single line.
+    let raw_between = &text[after_begin..end_pos];
+    let trimmed_once = raw_between
+        .strip_prefix("\r\n")
+        .or_else(|| raw_between.strip_prefix('\n'))
+        .unwrap_or(raw_between);
+    let trimmed_once = trimmed_once
+        .strip_suffix("\r\n")
+        .or_else(|| trimmed_once.strip_suffix('\n'))
+        .unwrap_or(trimmed_once);
+    if trimmed_once.contains('\n') {
+        return Err(Error::NotFound);
+    }
+    // A second BEGIN before this block's own END (same line or otherwise) means
+    // two overlapping/nested blocks, not one legitimate reference that happens
+    // to mention the word BEGIN -- reject it the same way a second block found
+    // after END already is, rather than silently absorbing it into the
+    // reference.
+    if find_delimiter(raw_between.as_bytes(), BEGIN).is_some() {
+        return Err(Error::MultipleBlocks);
+    }
+
     let after_end = end_pos + END.len();
     if find_delimiter(&bytes[after_end..], BEGIN).is_some() {
         return Err(Error::MultipleBlocks);
     }
 
-    let reference = text[after_begin..end_pos].trim().to_string();
+    let reference = trimmed_once.trim().to_string();
     if reference.is_empty() {
         return Err(Error::EmptyReference);
     }
@@ -196,6 +227,26 @@ mod tests {
     #[test]
     fn multiple_blocks() {
         let text = "# -----BEGIN C2PA MANIFEST----- https://a.com -----END C2PA MANIFEST-----\n# -----BEGIN C2PA MANIFEST----- https://b.com -----END C2PA MANIFEST-----\n";
+        assert!(matches!(extract_manifest(text), Err(Error::MultipleBlocks)));
+    }
+
+    /// A malformed file with BEGIN and END on non-adjacent lines must not be
+    /// treated as a legitimate block -- otherwise everything between them,
+    /// including real file content, gets folded into the hash-exclusion range
+    /// and can be tampered with undetected.
+    #[test]
+    fn begin_and_end_on_non_adjacent_lines_is_rejected() {
+        let text =
+            "# -----BEGIN C2PA MANIFEST----- https://a.com\nprint('x')\n# -----END C2PA MANIFEST-----\nbody\n";
+        assert!(matches!(extract_manifest(text), Err(Error::NotFound)));
+    }
+
+    /// A second BEGIN before the first block's own END, on the same line as
+    /// the reference, is a nested/overlapping block -- not a reference that
+    /// happens to mention the word BEGIN.
+    #[test]
+    fn nested_begin_before_end_is_rejected() {
+        let text = "# -----BEGIN C2PA MANIFEST----- https://a.com -----BEGIN C2PA MANIFEST----- https://b.com -----END C2PA MANIFEST-----\n";
         assert!(matches!(extract_manifest(text), Err(Error::MultipleBlocks)));
     }
 
